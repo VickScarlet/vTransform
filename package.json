@@ -1,0 +1,12 @@
+{
+  "name": "vTransform",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/VickScarlet/vTransform.git",
+  "author": "Vick Scarlet <scarlet_vick@outlook.com>",
+  "license": "MIT",
+  "dependencies": {
+    "xlsx": "^0.17.1"
+  }
+}
