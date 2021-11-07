@@ -53,7 +53,7 @@ async function req(config) {
             job.source = [];
             for(const p of source)
                 job.source.push(await walk(resolve(dir, p)))
-            job.source.flat();
+            job.source = job.source.flat();
         } else {
             job.source = await walk(resolve(dir, source));
         }
