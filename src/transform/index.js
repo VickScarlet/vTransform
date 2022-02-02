@@ -21,6 +21,16 @@ async function job(source, target, r, w) {
 
         if(mergeData) {
             for(const sheetName in mergeData) {
+                const [a, b] = sheetName.split('.');
+                if(b) {
+                    const data = {[b]: mergeData[sheetName]}
+                    if(!merges[a]) {
+                        merges[a] = [ data ];
+                    } else {
+                        merges[a].push(data);
+                    }
+                    continue;
+                }
                 if(!merges[sheetName]) {
                     merges[sheetName] = [ mergeData[sheetName] ];
                 } else {
