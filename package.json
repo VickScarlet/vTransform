@@ -4,13 +4,14 @@
     "vt": "src/index.js"
   },
   "type": "module",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "index.js",
   "repository": "https://github.com/VickScarlet/vTransform.git",
   "author": "Vick Scarlet <scarlet_vick@outlook.com>",
   "license": "MIT",
   "dependencies": {
     "commander": "^8.2.0",
+    "js-yaml": "^4.1.0",
     "xlsx": "^0.17.1"
   }
 }

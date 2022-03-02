@@ -1,3 +1,5 @@
+import yaml from 'js-yaml';
+
 function parseStruct(head) {
     const layer = [];
     const subs = {};
@@ -92,7 +94,7 @@ function formatRow({type, key, source, subs}, row, original, json) {
                     return { 
                         key, 
                         value: json.includes(source) 
-                            ? JSON.parse(value) 
+                            ? yaml.load(value) 
                             : value
                     };
                 } catch(e) {
