@@ -1,11 +1,17 @@
 function parseStruct(head) {
     const layer = [];
     const subs = {};
+    const json = [];
 
     for(const col in head) {
-        const key = head[col];
+        let key = head[col].trim();
         if(key[0] == '#') continue;
-        const [first, ...last] = key.split(/[\.:]/);
+        if(key[0] == '@') {
+            json.push(col);
+            key = key.substr(1);
+        }
+        let [first, ...last] = key.split(/[\.:]/);
+        first = first.trim();
         if(!subs[first]) {
             layer.push(first);
         }
@@ -26,6 +32,7 @@ function parseStruct(head) {
     const struct = {
         type: 'object',
         subs: [],
+        json
     };
 
     for(const key of layer) {
@@ -74,20 +81,29 @@ function parseStruct(head) {
     return struct;
 }
 
-function formatRow({type, key, source, subs}, row, original) {
+function formatRow({type, key, source, subs}, row, original, json) {
     if(row[0] == '#' || (''+row[0])[0] == '#') return null;
     if(key && key[0] == '#') key = row[key.substr(1)];
     switch(type) {
         case 'value':
             const value = row[source];
             if(value != void 0) {
-                return { key, value };
+                try {
+                    return { 
+                        key, 
+                        value: json.includes(source) 
+                            ? JSON.parse(value) 
+                            : value
+                    };
+                } catch(e) {
+                    return null;
+                }
             }
             return null;
         case 'array':
             const arr = original?.[key] || [];
             for(const sub of subs) {
-                const data = formatRow(sub, row, arr);
+                const data = formatRow(sub, row, arr, json);
                 if(data) {
                     arr.push(data.value);
                 }
@@ -100,7 +116,7 @@ function formatRow({type, key, source, subs}, row, original) {
             const obj = original?.[key] || {};
             let r = false;
             for(const sub of subs) {
-                const data = formatRow(sub, row, obj);
+                const data = formatRow(sub, row, obj, json);
                 if(data) {
                     r = true;
                     obj[data.key] = data.value;
@@ -113,19 +129,18 @@ function formatRow({type, key, source, subs}, row, original) {
     }
 }
 
-function formatSheet(struct, rawSheet) {
+function formatSheet(struct, rawSheet, json) {
     let data;
     if(struct.key == void 0) {
-        const subs = struct.subs;
         data = [];
         for(const row of rawSheet) {
-            const temp = formatRow(struct, row);
+            const temp = formatRow(struct, row, null, json);
             if(temp) data.push(temp.value);
         }
     } else {
         data = {};
         for(const row of rawSheet) {
-            const temp = formatRow(struct, row, data);
+            const temp = formatRow(struct, row, data, json);
             if(temp) data[temp.key] = temp.value;
         }
     }
@@ -136,7 +151,7 @@ function formatSheet(struct, rawSheet) {
 function parser(rawSheet) {
     const struct = parseStruct(rawSheet.shift());
     rawSheet.shift();
-    return formatSheet(struct, rawSheet);
+    return formatSheet(struct, rawSheet, struct.json);
 }
 
 export { parser };
