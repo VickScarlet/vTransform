@@ -1,31 +1,23 @@
 #!/usr/bin/env node
-import commander from 'commander';
+import { Command } from 'commander';
 import { readFile } from 'fs/promises';
-import { readXLSX, writeJSON, jobs as getJobs } from './io.js';
+import { read, getWrite, jobs as getJobs } from './io.js';
 import { jobs as doJobs } from './transform/index.js';
 
-commander
-    .command('version')
-    .action(async () => {
-        console.info(
-            JSON.parse(
-                    await readFile('package.json')
-                )
-                .version
-        );
-    });
+(async() => {
 
-commander
+const program = new Command();
+
+program.name('vt');
+program.version(JSON.parse(await readFile('package.json')).version);
+program
     .command('transform [list...]')
-    .action(async list => {
-        await doJobs(
-            await getJobs(list),
-            readXLSX,
-            writeJSON,
-        );
-    });
+    .option('-t, --type <type>', 'type of transform, available: js, esm, cjs, json', 'json')
+    .option('-s, --space <space>', 'format space number', 0)
+    .action(async (list, {type, space}) => doJobs(
+        await getJobs(list), read, getWrite(type, space),
+    ));
 
-commander
-    .name('vt');
+program.parse(process.argv);
 
-commander.parse(process.argv);
+})();

@@ -91,10 +91,10 @@ function formatRow({type, key, source, subs}, row, original, json) {
             const value = row[source];
             if(value != void 0) {
                 try {
-                    return { 
-                        key, 
-                        value: json.includes(source) 
-                            ? yaml.load(value) 
+                    return {
+                        key,
+                        value: json.includes(source)
+                            ? yaml.load(value)
                             : value
                     };
                 } catch(e) {
@@ -150,10 +150,8 @@ function formatSheet(struct, rawSheet, json) {
     return data;
 }
 
-function parser(rawSheet) {
+export function parser(rawSheet) {
     const struct = parseStruct(rawSheet.shift());
     rawSheet.shift();
     return formatSheet(struct, rawSheet, struct.json);
 }
-
-export { parser };

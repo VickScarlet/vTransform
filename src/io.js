@@ -1,9 +1,27 @@
 import { readFile, writeFile, stat, readdir } from 'fs/promises';
 import * as XLSX from 'xlsx';
 import { join, extname, dirname, resolve } from 'path';
+import yaml from 'js-yaml';
 
+function stringify(data, space) {
+    return JSON.stringify(data, null, space);
+}
 
-async function readXLSX(xlsxPath) {
+function cjs(data, space) {
+    return `module.exports = ${stringify(data, space)}`;
+}
+
+function esm(data, space) {
+    return `export default ${stringify(data, space)}`;
+}
+
+function yamlify(data, space) {
+    return yaml.dump(data, {
+        indent: space || undefined,
+    });
+}
+
+export async function read(xlsxPath) {
     const xlsxFileBuffer = await readFile(xlsxPath);
     const xlsx = XLSX.read(xlsxFileBuffer, {type: 'buffer'});
     const sheets = xlsx.Sheets;
@@ -16,11 +34,34 @@ async function readXLSX(xlsxPath) {
     return data;
 }
 
-async function writeJSON(data, savePath) {
-    await writeFile(
-        savePath,
-        JSON.stringify(data, null, 4),
-    )
+export function getWrite(type, space) {
+    let format, extname;
+    switch(type) {
+        case 'commonjs':
+        case 'cjs':
+            extname = '.cjs';
+            format = cjs; break;
+        case 'javascript':
+        case 'js':
+            extname = '.js';
+            format = esm; break;
+        case 'esm':
+        case 'mjs':
+            extname = '.mjs';
+            format = esm; break;
+        case 'yml':
+        case 'yaml':
+            extname = '.yaml';
+            format = yamlify; break;
+        case 'json':
+        default:
+            extname = '.json';
+            format = stringify; break;
+    }
+    return (data, target, basename) => writeFile(
+        join(target, `${basename}${extname}`),
+        format(data, Number(space)||0)
+    );
 }
 
 async function walk(filePath) {
@@ -63,7 +104,7 @@ async function req(config) {
     return jobs;
 }
 
-async function jobs(configs) {
+export async function jobs(configs) {
     const list = [];
     const files = [];
     for(const config of configs) {
@@ -84,5 +125,3 @@ async function jobs(configs) {
     }
     return list.flat();
 }
-
-export { readXLSX, writeJSON, jobs };
