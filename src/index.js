@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { readFile } from 'fs/promises';
-import { read, getWrite, jobs as getJobs } from './io.js';
-import { jobs as doJobs } from './transform/index.js';
+import { transform } from './transform.js';
 
 (async() => {
 
@@ -14,9 +13,15 @@ program
     .command('transform [list...]')
     .option('-t, --type <type>', 'type of transform, available: js, esm, cjs, json', 'json')
     .option('-s, --space <space>', 'format space number', 0)
-    .action(async (list, {type, space}) => doJobs(
-        await getJobs(list), read, getWrite(type, space),
-    ));
+    .option('-c, --config <config>', 'configure file', null)
+    .option('-w, --cwd <cwd>', 'current work dir', null)
+    .option('-o, --output <output>', 'output dir', null)
+    .option('-d, --dest <dest>', 'dest dir', null)
+    .action((list, options) => {
+        if(!options.dest) options.dest = options.output;
+        options.list = list;
+        transform(options);
+    });
 
 program.parse(process.argv);
 

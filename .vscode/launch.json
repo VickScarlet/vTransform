@@ -11,7 +11,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "args": ["test"],
+            // "args": ["transform", "-c", "jobs/sheet.yaml"],
+            "args": ["transform", "-d", "test", "-w", "data", "**/*.xlsx"],
             "type": "node"
         }
 
