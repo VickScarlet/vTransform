@@ -22,10 +22,13 @@ async function task({files, dest, cwd, type, space}) {
             let sheet = name.split('#')[0];
             sheet = sheet.replace('<arr>', '');
             if(sheet[0] === '>') sheet = sheet.substring(1);
-            sheet = path.resolve(dir, sheet);
+            const keys = sheet.split('.');
+            sheet = path.resolve(dir, keys.shift());
             if(!m.has(sheet))
                 m.set(sheet, new JobData());
-            m.get(sheet).append(parser(data));
+            m.get(sheet).append({
+                keys, data: parser(data)
+            });
         }
     }
     for(const [sheet, data] of m)
@@ -45,16 +48,26 @@ class JobData {
 
     result() {
         if(!this.#data.length) return {};
-        const data = this.#data;
+        const d = this.#data;
         let result;
-        if(Array.isArray(data[0])) {
+        if(Array.isArray(d[0].data)) {
             result = [];
-            for(const subs of data)
-                result.push(...Object.values(subs));
+            for(const {data} of d)
+                result.push(...Object.values(data));
         } else {
             result = {};
-            for(const subs of data)
-                Object.assign(result, subs);
+            for(const {keys, data} of d) {
+                if(!keys.length) {
+                    Object.assign(result, data);
+                    continue;
+                }
+                let r = result;
+                for(const key of keys) {
+                    if(!r[key]) r[key] = {};
+                    r = r[key];
+                }
+                Object.assign(r, data);
+            }
         }
         return result;
     }
