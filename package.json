@@ -4,7 +4,7 @@
     "vt": "src/index.js"
   },
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "main": "index.js",
   "repository": "https://github.com/VickScarlet/vTransform.git",
   "author": "Vick Scarlet <scarlet_vick@outlook.com>",
