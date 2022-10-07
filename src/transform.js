@@ -19,9 +19,10 @@ async function task({files, dest, cwd, type, space}) {
         const dir = path.resolve(dest, path.dirname(file));
         for(const {name, data} of (await prepare(path.resolve(cwd, file)))) {
             if(name[0] === "#") continue;
-            let sheet = path.resolve(dir, name.split('#')[0]);
-            if(sheet[0] === '>') sheet = sheet.substring(1)
+            let sheet = name.split('#')[0];
             sheet = sheet.replace('<arr>', '');
+            if(sheet[0] === '>') sheet = sheet.substring(1);
+            sheet = path.resolve(dir, sheet);
             if(!m.has(sheet))
                 m.set(sheet, new JobData());
             m.get(sheet).append(parser(data));
