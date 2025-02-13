@@ -11,7 +11,10 @@
     "vt": "node src/index.js",
     "transform": "node src/index.js transform"
   },
-  "repository": "https://github.com/VickScarlet/vTransform.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VickScarlet/vTransform.git"
+  },
   "author": "Vick Scarlet <scarlet_vick@outlook.com>",
   "license": "MIT",
   "dependencies": {
