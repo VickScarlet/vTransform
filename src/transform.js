@@ -7,37 +7,37 @@ import { dump } from './dump.js';
 export async function transform(options) {
     const now = Date.now();
     const configurations = await load(options);
-    for(const config of configurations)
+    for (const config of configurations)
         await task(config);
     console.info(`Transformed in ${Date.now() - now}ms`);
 }
 
-async function task({files, dest, cwd, type, space}) {
-    console.info('Transform task config:', {files, dest, cwd, type, space});
+async function task({ files, dest, cwd, type, space }) {
+    console.info('Transform task config:', { files, dest, cwd, type, space });
     const m = new Map();
-    for(const file of files) {
+    for (const file of files) {
         const dir = path.resolve(dest, path.dirname(file));
-        for(const {name, data} of (await prepare(path.resolve(cwd, file)))) {
-            if(name[0] === "#") continue;
+        for (const { name, data } of (await prepare(path.resolve(cwd, file)))) {
+            if (name[0] === "#") continue;
             let sheet = name.split('#')[0];
             sheet = sheet.replace('<arr>', '');
-            if(sheet[0] === '>') sheet = sheet.substring(1);
+            if (sheet[0] === '>') sheet = sheet.substring(1);
             const keys = sheet.split('.');
             sheet = path.resolve(dir, keys.shift());
-            if(!m.has(sheet))
+            if (!m.has(sheet))
                 m.set(sheet, new JobData());
             m.get(sheet).append({
                 keys, data: parser(data)
             });
         }
     }
-    for(const [sheet, data] of m)
+    for (const [sheet, data] of m)
         await dump(sheet, data.result(), type, space);
 }
 
 class JobData {
     constructor(data) {
-        if(data) this.append(data);
+        if (data) this.append(data);
     }
 
     #data = [];
@@ -47,28 +47,40 @@ class JobData {
     }
 
     result() {
-        if(!this.#data.length) return {};
-        const d = this.#data;
+        if (!this.#data.length) return {};
         let result;
-        if(Array.isArray(d[0].data)) {
-            result = [];
-            for(const {data} of d)
-                result.push(...Object.values(data));
-        } else {
-            result = {};
-            for(const {keys, data} of d) {
-                if(!keys.length) {
-                    Object.assign(result, data);
-                    continue;
-                }
-                let r = result;
-                for(const key of keys) {
-                    if(!r[key]) r[key] = {};
-                    r = r[key];
-                }
-                Object.assign(r, data);
+        for (const { keys, data } of this.#data) {
+            if (!keys.length) {
+                result = this.#combine(result, data);
+                continue;
             }
+            if (!result) result = {};
+            let r = result;
+            let last = keys.pop();
+            for (const key of keys) {
+                if (!r[key]) r[key] = {};
+                r = r[key];
+            }
+            r[last] = this.#combine(r[last], data);
         }
+        return result;
+    }
+
+    #combine(a, b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        if (Array.isArray(a) && Array.isArray(b)) {
+            if (Array.isArray(b)) return a.concat(b);
+            a.push(b);
+            return a;
+        }
+        if (Array.isArray(a))
+            return this.#combine(a, Object.values(b));
+        if (Array.isArray(b))
+            return this.#combine(Object.values(a), b);
+        const result = {};
+        for (const key in a) result[key] = this.#combine(a[key], b[key]);
+        for (const key in b) if (!result[key]) result[key] = b[key];
         return result;
     }
 }
