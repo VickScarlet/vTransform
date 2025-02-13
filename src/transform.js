@@ -12,7 +12,7 @@ export async function transform(options) {
     console.info(`Transformed in ${Date.now() - now}ms`);
 }
 
-async function task({ files, dest, cwd, type, space }) {
+async function task({ files, dest, cwd, type, space, addition }) {
     console.info('Transform task config:', { files, dest, cwd, type, space });
     const m = new Map();
     for (const file of files) {
@@ -31,8 +31,13 @@ async function task({ files, dest, cwd, type, space }) {
             });
         }
     }
-    for (const [sheet, data] of m)
-        await dump(sheet, data.result(), type, space);
+    for (const [sheet, job] of m) {
+        const data = job.result();
+        if (addition)
+            await dump(sheet, { data, ...addition }, type, space);
+        else
+            await dump(sheet, data, type, space);
+    }
 }
 
 class JobData {
