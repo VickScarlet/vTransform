@@ -1,63 +1,66 @@
-import yaml from 'js-yaml';
-import path from 'path';
-import { writeFile, stat, mkdir } from 'fs/promises';
+import yaml from 'js-yaml'
+import path from 'node:path'
+import { writeFile, stat, mkdir } from 'node:fs/promises'
 
 function jsonify(data, space) {
-    return JSON.stringify(data, null, space);
+    return JSON.stringify(data, null, space)
 }
 
 function cjsify(data, space) {
-    return `module.exports = ${jsonify(data, space)}`;
+    return `module.exports = ${jsonify(data, space)}`
 }
 
 function esmify(data, space) {
-    return `export default ${jsonify(data, space)}`;
+    return `export default ${jsonify(data, space)}`
 }
 
 function yamlify(data, space) {
     return yaml.dump(data, {
         indent: space || undefined,
-    });
+    })
 }
 
 async function mkdirs(dir) {
     try {
-        await stat(dir);
-    } catch(e) {
-        await mkdirs(path.dirname(dir));
-        mkdir(dir);
+        await stat(dir)
+    } catch (e) {
+        if (e.code !== 'ENOENT') {
+            throw e
+        }
+        await mkdirs(path.dirname(dir))
+        await mkdir(dir)
     }
-};
+}
 
 async function write(sheet, data) {
-    console.info(`Dump ${sheet}`);
-    await mkdirs(path.dirname(sheet));
-    await writeFile(sheet, data);
+    console.info(`Dump ${sheet}`)
+    await mkdirs(path.dirname(sheet))
+    await writeFile(sheet, data)
 }
 
 export async function dump(sheet, data, type, space) {
-    let ext, ify;
-    switch(type) {
+    let ext, ify
+    switch (type) {
         case 'cjs':
-            ext = '.js';
-            ify = cjsify;
-            break;
+            ext = '.js'
+            ify = cjsify
+            break
         case 'js':
         case 'mjs':
         case 'esm':
-            ext = '.js';
-            ify = esmify;
-            break;
+            ext = '.js'
+            ify = esmify
+            break
         case 'yaml':
         case 'yml':
-            ext = '.yaml';
-            ify = yamlify;
-            break;
+            ext = '.yaml'
+            ify = yamlify
+            break
         case 'json':
         default:
-            ext = '.json';
-            ify = jsonify;
-            break;
+            ext = '.json'
+            ify = jsonify
+            break
     }
-    return write(`${sheet}${ext}`, ify(data, space));
+    return write(`${sheet}${ext}`, ify(data, space))
 }

@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             // "args": ["transform", "-c", "jobs/sheet.yaml"],
-            "args": ["transform", "-d", "test", "-w", "data", "**/*.xlsx"],
+            "args": ["transform", "-d", "dist", "-w", "data", "**/*.xlsx", "-s", "4"],
             "type": "node"
         }
 

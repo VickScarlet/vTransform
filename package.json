@@ -4,7 +4,7 @@
     "vt": "src/index.js"
   },
   "type": "module",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "main": "index.js",
   "scripts": {
     "clean": "npx rimraf test",
@@ -18,9 +18,9 @@
   "author": "Vick Scarlet <scarlet_vick@outlook.com>",
   "license": "MIT",
   "dependencies": {
-    "commander": "^8.2.0",
-    "glob": "^8.0.3",
-    "js-yaml": "^4.1.0",
-    "xlsx": "^0.18.5"
+    "commander": "^14.0.2",
+    "glob": "^13.0.0",
+    "js-yaml": "^4.1.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }
