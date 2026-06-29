@@ -1,5 +1,5 @@
 import { glob } from 'glob'
-import yaml from 'js-yaml'
+import { load as loadYAML } from 'js-yaml'
 import path from 'node:path'
 import { readFile } from 'node:fs/promises'
 
@@ -51,7 +51,7 @@ async function loadConfig(config) {
         case '.json':
         case '.yaml':
         case '.yml':
-            return yaml.load(await readFile(config))
+            return loadYAML(await readFile(config))
         case '.js':
         case '.mjs':
             return (await import(config)).default

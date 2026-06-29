@@ -1,4 +1,4 @@
-import yaml from 'js-yaml'
+import { load } from 'js-yaml'
 
 function isCommentKey(key) {
     return key.startsWith('#')
@@ -88,7 +88,7 @@ function formatRow({ type, key, source, subs }, row, original, json) {
 
 function formatValue(key, source, value, json) {
     if (value == null) return null
-    if (json.includes(source)) value = yaml.load(value)
+    if (json.includes(source)) value = load(value)
     return { key, value }
 }
 

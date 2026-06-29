@@ -1,4 +1,4 @@
-import yaml from 'js-yaml'
+import { dump as dumpYAML } from 'js-yaml'
 import path from 'node:path'
 import { writeFile, stat, mkdir } from 'node:fs/promises'
 
@@ -15,7 +15,7 @@ function esmify(data, space) {
 }
 
 function yamlify(data, space) {
-    return yaml.dump(data, {
+    return dumpYAML(data, {
         indent: space || undefined,
     })
 }
