@@ -3,7 +3,6 @@ import path from 'node:path'
 import { generate } from 'ts-to-zod'
 
 export async function calibrateTsData(data, name, types, pk) {
-    // 如果没配对应的 .types.ts 文件，直接退回原始数据，类型签名为 any[]
     if (!types || !fs.existsSync(types)) {
         console.warn(
             `⚠️ 提示: 在 Excel 同级目录下未找到 [${name}.types.ts]，将退回普通无类型导出。`,
@@ -12,7 +11,7 @@ export async function calibrateTsData(data, name, types, pk) {
         const extra = {
             typeSign: isArray ? 'any[]' : 'Map<any, any>',
             types: isArray ? `export type ${name.toUpperCase()} = any;` : '',
-            isNativeMap: !isArray, // 👈 即使降级也需要同步对齐是否为 Map 的标记
+            isNativeMap: !isArray,
         }
         return { data, extra }
     }
@@ -23,11 +22,58 @@ export async function calibrateTsData(data, name, types, pk) {
     const sourceText = fs.readFileSync(types, 'utf-8')
     const options = { keepOptionalProperties: true }
     const zod = generate({ sourceText, options })
-    const zodRawCode = zod
-        .getZodSchemasFile()
-        .replace(/z\.boolean\(\)/g, 'z.coerce.boolean()')
+    const tsFileBase64 = Buffer.from(sourceText).toString('base64')
+    const configModule = await import(
+        `data:text/javascript;base64,${tsFileBase64}`
+    )
+    const customTransformers = configModule.transformers || {}
+    const mergedTransformers = {
+        string: val => {
+            if (val === null || val === undefined) return val
+            return String(val)
+        },
+        boolean: val => {
+            if (val === null || val === undefined) return val
+            const strVal = String(val).toLowerCase().trim()
+            if (strVal === 'true' || val === true || val === 1) return true
+            if (strVal === 'false' || val === false || val === 0) return false
+            return Boolean(val)
+        },
+    }
+    const localZodPath = require.resolve('zod').replace(/\\/g, '/')
+    let zodRawCode = zod.getZodSchemasFile()
+    zodRawCode = zodRawCode.replace(
+        /from\s+['"]zod['"]/g,
+        `from "${localZodPath}"`,
+    )
+    zodRawCode = zodRawCode.replace(
+        /z\.string\(\)/g,
+        `z.preprocess(globalThis.__MERGED_TRANSFORMERS__.string, z.string())`,
+    )
+    zodRawCode = zodRawCode.replace(
+        /z\.boolean\(\)/g,
+        `z.preprocess(globalThis.__MERGED_TRANSFORMERS__.boolean, z.boolean())`,
+    )
+    Object.keys(customTransformers).forEach(fieldKey => {
+        if (fieldKey === 'string' || fieldKey === 'boolean') return
+
+        const targetRegex = new RegExp(
+            `(${fieldKey}:\\s*)(z\\.[a-zA-Z_0-9]+(?:\\([^)]*\\))?)`,
+            'g',
+        )
+        zodRawCode = zodRawCode.replace(
+            targetRegex,
+            (m, prefix, originalZodType) => {
+                mergedTransformers[fieldKey] = customTransformers[fieldKey]
+                return `${prefix}z.preprocess(globalThis.__MERGED_TRANSFORMERS__.${fieldKey}, ${originalZodType})`
+            },
+        )
+    })
+
+    globalThis.__MERGED_TRANSFORMERS__ = mergedTransformers
     const base64Code = Buffer.from(zodRawCode).toString('base64')
     const zodModule = await import(`data:text/javascript;base64,${base64Code}`)
+    delete globalThis.__MERGED_TRANSFORMERS__
     const targetSchemaName = `${name}Schema`
     const RowZodValidator = zodModule[targetSchemaName]
 
@@ -57,9 +103,7 @@ export async function calibrateTsData(data, name, types, pk) {
             cleanData.push(parseResult.data)
         }
         console.info(`📦 [Array 模式] 完美对齐数组规范`)
-    }
-    // 2. Map 模式验证
-    else if (typeof data === 'object' && data !== null) {
+    } else if (typeof data === 'object' && data !== null) {
         const tempCleanMap = {}
         for (const key in data) {
             const parseResult = RowZodValidator.safeParse(data[key])
@@ -73,15 +117,9 @@ export async function calibrateTsData(data, name, types, pk) {
             }
             tempCleanMap[key] = parseResult.data
         }
-        // ========================================================
-        // 🌟 终极修复：利用 Zod 原生验证自适应看穿 readonly 伪装
-        // ========================================================
         let keyType = 'string'
         if (pk && RowZodValidator.shape && RowZodValidator.shape[pk]) {
             const validator = RowZodValidator.shape[pk]
-
-            // 💡 核心黑科技：直接用 1（数字）和 "1"（字符串）去该字段的校验器里试探！
-            // 无论它套了多少层 readonly() 还是可选约束，只要它不接受数字 1 校验，就说明它不是 number
             if (
                 validator.safeParse(1).success &&
                 !validator.safeParse('1').success
@@ -101,20 +139,14 @@ export async function calibrateTsData(data, name, types, pk) {
         )
     }
 
-    // 🌟 核心修改 2：在返回的 extra 元数据层，加上 isNativeMap 的明确布尔标记。
-    // 这可以让下游的 dump.js 接收到它后，通过简单的一行流判断，决定是将 cleanData 渲染为普通 JSON，还是渲染为强大的 new Map(...)
     const extra = {
         typeSign,
         types: sourceText,
-        isNativeMap: !Array.isArray(data), // 如果上游合并出来的不是数组（即Map模式），标记为 true
+        isNativeMap: !Array.isArray(data),
     }
-
     return { data: cleanData, extra }
 }
 
-/**
- * 统一的美化报错打印
- */
 function printZodError(sheetName, positionLabel, issues, rawRowData) {
     console.error(`\n❌ [vTransform 数据校准失败]`)
     console.error(
