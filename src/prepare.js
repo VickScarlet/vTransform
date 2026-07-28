@@ -15,8 +15,11 @@ export async function prepare(xlsxPath) {
     const datas = []
     for (const name in xlsx.Sheets) {
         const sheetRawData = xlsx.Sheets[name]
-        if (!sheetRawData['!ref']) break
-        const data = utils.sheet_to_json(sheetRawData, { header: 1 })
+        if (!sheetRawData['!ref']) continue
+        const data = utils.sheet_to_json(sheetRawData, {
+            header: 1,
+            defval: null,
+        })
         datas.push({ name, data })
     }
     return datas

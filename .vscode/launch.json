@@ -8,12 +8,9 @@
             "name": "test",
             "program": "${workspaceFolder}/src/index.js",
             "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
             // "args": ["transform", "-c", "jobs/sheet.yaml"],
-            "args": ["transform", "-d", "dist", "-w", "data", "**/*.xlsx", "-s", "4"],
-            "type": "node"
+            "args": ["transform", "-w", "data/question", "**/*.xlsx", "-t", "ts", "-a"],
+            "type": "bun"
         }
 
     ]

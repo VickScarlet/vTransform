@@ -11,7 +11,7 @@ program
     .command('transform [list...]')
     .option(
         '-t, --type <type>',
-        'type of transform, available: js, esm, cjs, json',
+        'type of transform, available: js, ts, esm, cjs, json',
         'json',
     )
     .option('-s, --space <space>', 'format space number', 0)

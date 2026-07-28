@@ -9,6 +9,14 @@ function isJsonKey(key) {
 }
 
 function processHeaderColumn(col, head, layer, subs, json) {
+    // 💡 核心修复：如果该单元格为 null、undefined 或空，直接跳过不处理，防止错位和崩溃
+    if (
+        head[col] === null ||
+        head[col] === undefined ||
+        String(head[col]).trim() === ''
+    )
+        return
+
     let key = head[col].trim()
     if (isCommentKey(key)) return
     if (isJsonKey(key)) {
@@ -134,7 +142,13 @@ function formatSheet(struct, rawSheet, json) {
 }
 
 export function parser(rawSheet) {
-    const struct = parseStruct(rawSheet.shift())
+    const head = rawSheet.shift()
+    const struct = parseStruct(head)
     rawSheet.shift()
-    return formatSheet(struct, rawSheet, struct.json)
+    const data = formatSheet(struct, rawSheet, struct.json)
+    if (struct.key) {
+        const col = struct.key.substring(1)
+        return [data, head[col].substring(1)]
+    }
+    return [data, null]
 }

@@ -3,6 +3,7 @@ import { load } from './loader.js'
 import { prepare } from './prepare.js'
 import { parser } from './parser.js'
 import { dump } from './dump.js'
+import { calibrateTsData } from './calibrator.js'
 
 export async function transform(options) {
     const now = Date.now()
@@ -16,21 +17,21 @@ async function task({ files, dest, cwd, type, space, addition }) {
     const m = new Map()
     for (const file of files) {
         const dir = path.resolve(dest, path.dirname(file))
-        const prepared = await prepare(path.resolve(cwd, file))
-        processPrepared(prepared, dir, m)
+        await processPrepared(path.resolve(cwd, file), dir, m, type == 'ts')
     }
     for (const [sheet, job] of m) {
-        const data = job.result()
-        if (addition) await dump(sheet, { data, ...addition }, type, space)
-        else await dump(sheet, data, type, space)
+        const data = await job.result()
+        await dump(sheet, { ...data, addition }, type, space, job.name)
     }
 }
 
-function processPrepared(prepared, dir, m) {
+async function processPrepared(src, dir, m, isTs) {
+    const prepared = await prepare(src)
+    const xlsxDir = path.dirname(src)
     for (const { name, data } of prepared) {
         if (name.startsWith('#')) continue
         const { sheet, keys } = parseSheetAndKeys(name, dir)
-        if (!m.has(sheet)) m.set(sheet, new JobData())
+        if (!m.has(sheet)) m.set(sheet, new JobData(isTs, name, xlsxDir))
         m.get(sheet).append({ keys, data: parser(data) })
     }
 }
@@ -45,17 +46,24 @@ function parseSheetAndKeys(name, dir) {
 }
 
 class JobData {
-    constructor(data) {
-        if (data) this.append(data)
+    constructor(isTs, name, xlsxDir) {
+        this.#isTs = isTs
+        this.#name = name
+        this.#xlsxDir = xlsxDir
     }
 
     #data = []
+    #pk = null
+    #isTs = false
+    #name = ''
+    #xlsxDir = ''
 
-    append(data) {
-        this.#data.push(data)
+    append({ data: [data, pk], keys }) {
+        this.#data.push({ data, keys })
+        if (pk) this.#pk = pk
     }
 
-    result() {
+    async result() {
         if (!this.#data.length) return {}
         let result
         for (const { keys, data } of this.#data) {
@@ -72,7 +80,15 @@ class JobData {
             }
             r[last] = this.#combine(r[last], data)
         }
-        return result
+        if (!this.#isTs) return { data: result }
+
+        // TODO: 这里调用数据清洗
+        return await calibrateTsData(
+            result,
+            this.#name,
+            path.join(this.#xlsxDir, `${this.#name}.types.ts`),
+            this.#pk,
+        )
     }
 
     #combine(a, b) {
@@ -89,5 +105,9 @@ class JobData {
         for (const key in a) result[key] = this.#combine(a[key], b[key])
         for (const key in b) if (!result[key]) result[key] = b[key]
         return result
+    }
+
+    get name() {
+        return this.#name
     }
 }
