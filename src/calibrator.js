@@ -139,11 +139,8 @@ export async function calibrateTsData(data, name, types, pk) {
         )
     }
 
-    const extra = {
-        typeSign,
-        types: sourceText,
-        isNativeMap: !Array.isArray(data),
-    }
+    types = sourceText.split(/.*@vt-types-end.*/i)[0]
+    const extra = { typeSign, types, isNativeMap: !Array.isArray(data) }
     return { data: cleanData, extra }
 }
 
