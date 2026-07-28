@@ -30,8 +30,8 @@ async function processPrepared(src, dir, m, isTs) {
     const xlsxDir = path.dirname(src)
     for (const { name, data } of prepared) {
         if (name.startsWith('#')) continue
-        const { sheet, keys } = parseSheetAndKeys(name, dir)
-        if (!m.has(sheet)) m.set(sheet, new JobData(isTs, name, xlsxDir))
+        const { sheet, keys, name: parsedName } = parseSheetAndKeys(name, dir)
+        if (!m.has(sheet)) m.set(sheet, new JobData(isTs, parsedName, xlsxDir))
         m.get(sheet).append({ keys, data: parser(data) })
     }
 }
@@ -41,8 +41,9 @@ function parseSheetAndKeys(name, dir) {
     sheet = sheet.replace('<arr>', '')
     if (sheet.startsWith('>')) sheet = sheet.substring(1)
     const keys = sheet.split('.')
-    sheet = path.resolve(dir, keys.shift())
-    return { sheet, keys }
+    let key = keys.shift()
+    sheet = path.resolve(dir, key)
+    return { sheet, keys, name: key }
 }
 
 class JobData {
