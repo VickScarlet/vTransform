@@ -18,12 +18,11 @@ function jp(data, space) {
 function map(raw, pk, space) {
     const isArray = !pk || Array.isArray(raw)
     if (isArray || typeof raw !== 'object') {
-        const data = jp(j(raw, space))
-        return { data: jp(j(raw, space)), type: isArray ? 'array' : 'object' }
+        return { data: jp(raw, space), type: isArray ? 'array' : 'object' }
     }
     const data = Object.values(raw).map(v => [v[pk], v])
     console.info(`🔁 [Dump] Object -> Map [${pk}]`)
-    return { data: `new Map(${jp(j(data, space))})`, type: 'map' }
+    return { data: `new Map(${jp(data, space)})`, type: 'map' }
 }
 
 function withType(main, sub, pk) {
