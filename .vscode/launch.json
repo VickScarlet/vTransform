@@ -8,8 +8,16 @@
             "name": "test",
             "program": "${workspaceFolder}/src/index.js",
             "request": "launch",
-            // "args": ["transform", "-c", "jobs/sheet.yaml"],
-            "args": ["transform", "-w", "data/question", "**/*.xlsx", "-t", "ts", "-a"],
+            "args": [
+                "transform", 
+                "-wdata/remake", 
+                "-ddist", 
+                "-tts", 
+                // "-tcjs", 
+                // "-e.cjs",
+                "-a", 
+                "**/*.xlsx"
+            ],
             "type": "bun"
         }
 

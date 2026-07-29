@@ -12,26 +12,28 @@ export async function transform(options) {
     console.info(`Transformed in ${Date.now() - now}ms`)
 }
 
-async function task({ files, dest, cwd, type, space, addition }) {
-    console.info('Transform task config:', { files, dest, cwd, type, space })
+async function task(options) {
+    const { files, dest, cwd, type, space, addition, ext, types } = options
+    console.info('Transform task config:', options)
     const m = new Map()
     for (const file of files) {
         const dir = path.resolve(dest, path.dirname(file))
-        await processPrepared(path.resolve(cwd, file), dir, m, type == 'ts')
+        await processPrepared(path.resolve(cwd, file), dir, m)
     }
     for (const [sheet, job] of m) {
-        const data = await job.result()
-        await dump(sheet, { ...data, addition }, type, space, job.name)
+        const data = await job.result(addition)
+        const d = { sheet, data, type, space, name: job.name, ext, types }
+        await dump(d)
     }
 }
 
-async function processPrepared(src, dir, m, isTs) {
+async function processPrepared(src, dir, m) {
     const prepared = await prepare(src)
     const xlsxDir = path.dirname(src)
     for (const { name, data } of prepared) {
         if (name.startsWith('#')) continue
         const { sheet, keys, name: parsedName } = parseSheetAndKeys(name, dir)
-        if (!m.has(sheet)) m.set(sheet, new JobData(isTs, parsedName, xlsxDir))
+        if (!m.has(sheet)) m.set(sheet, new JobData(parsedName, xlsxDir))
         m.get(sheet).append({ keys, data: parser(data) })
     }
 }
@@ -47,15 +49,13 @@ function parseSheetAndKeys(name, dir) {
 }
 
 class JobData {
-    constructor(isTs, name, xlsxDir) {
-        this.#isTs = isTs
+    constructor(name, xlsxDir) {
         this.#name = name
         this.#xlsxDir = xlsxDir
     }
 
     #data = []
     #pk = null
-    #isTs = false
     #name = ''
     #xlsxDir = ''
 
@@ -64,8 +64,8 @@ class JobData {
         if (pk) this.#pk = pk
     }
 
-    async result() {
-        if (!this.#data.length) return {}
+    async result(addition) {
+        if (!this.#data.length) return { data: {}, extra: null }
         let result
         for (const { keys, data } of this.#data) {
             if (!keys.length) {
@@ -81,15 +81,9 @@ class JobData {
             }
             r[last] = this.#combine(r[last], data)
         }
-        if (!this.#isTs) return { data: result }
-
-        // TODO: 这里调用数据清洗
-        return await calibrateTsData(
-            result,
-            this.#name,
-            path.join(this.#xlsxDir, `${this.#name}.types.ts`),
-            this.#pk,
-        )
+        const dts = path.join(this.#xlsxDir, `${this.#name}.types.ts`)
+        const data = await calibrateTsData(result, this.#name, dts)
+        return { ...data, pk: this.#pk, addition }
     }
 
     #combine(a, b) {

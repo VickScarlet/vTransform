@@ -3,13 +3,15 @@ import { load as loadYAML } from 'js-yaml'
 import path from 'node:path'
 import { readFile } from 'node:fs/promises'
 
-export async function load({ type, space, config, dest, list, cwd, addition }) {
+export async function load(args) {
+    const { config, list, addition, ext } = args
     const version = new Date().toISOString()
-    type = type || 'json'
-    cwd = cwd || process.cwd()
-    space = Number(space) || 0
-    dest = dest || cwd
-    const def = { cwd, type, space, dest, addition }
+    const type = args.type || 'json'
+    const cwd = args.cwd || process.cwd()
+    const space = Number(args.space) || 0
+    const dest = args.dest || cwd
+    const types = !args.notypes
+    const def = { cwd, type, space, dest, addition, ext, types }
     const m = (...l) => globit(Object.assign({}, ...l))
     const cfgs = []
 

@@ -19,7 +19,9 @@ program
     .option('-w, --cwd <cwd>', 'current work dir', null)
     .option('-o, --output <output>', 'output dir', null)
     .option('-d, --dest <dest>', 'dest dir', null)
+    .option('-e, --ext <ext>', 'file ext', null)
     .option('-a, --addition', 'addition version', false)
+    .option('-x, --notypes', 'disable types generation', false)
     .action((list, options) => {
         if (!options.dest) options.dest = options.output
         options.list = list
