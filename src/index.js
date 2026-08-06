@@ -22,6 +22,7 @@ program
     .option('-e, --ext <ext>', 'file ext', null)
     .option('-a, --addition', 'addition version', false)
     .option('-x, --notypes', 'disable types generation', false)
+    .option('-m, --map', 'enable map generation', false)
     .action((list, options) => {
         if (!options.dest) options.dest = options.output
         options.list = list

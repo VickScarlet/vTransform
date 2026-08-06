@@ -13,8 +13,8 @@ export async function transform(options) {
 }
 
 async function task(options) {
-    const { files, dest, cwd, type, space, addition, ext, types } = options
     console.info('Transform task config:', options)
+    const { files, dest, cwd, addition, ...opts } = options
     const m = new Map()
     for (const file of files) {
         const dir = path.resolve(dest, path.dirname(file))
@@ -22,8 +22,7 @@ async function task(options) {
     }
     for (const [sheet, job] of m) {
         const data = await job.result(addition)
-        const d = { sheet, data, type, space, name: job.name, ext, types }
-        await dump(d)
+        await dump({ ...opts, sheet, data, name: job.name })
     }
 }
 

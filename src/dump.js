@@ -15,11 +15,11 @@ function jp(data, space) {
     return `JSON.parse(\n\t'${json}'\n)`
 }
 
-function map(raw, pk, space) {
-    const isArray = !pk || Array.isArray(raw)
-    if (isArray || typeof raw !== 'object') {
-        return { data: jp(raw, space), type: isArray ? 'array' : 'object' }
+function map(raw, pk, space, enable) {
+    if (Array.isArray(raw)) {
+        return { data: jp(raw, space), type: 'array' }
     }
+    if (!pk || !enable) return { data: jp(raw, space), type: 'object' }
     const data = Object.values(raw).map(v => [v[pk], v])
     console.info(`🔁 [Dump] Object -> Map [${pk}]`)
     return { data: `new Map(${jp(data, space)})`, type: 'map' }
@@ -33,28 +33,28 @@ function withType(main, sub, pk) {
             if (sub === 'any') return `Map<${sub}, ${sub}>`
             return `Map<${sub}['${pk}'], ${sub}>`
         case 'object':
-            return `{ [key: string]: ${sub} }`
+            return `Record<${sub}['${pk}'], ${sub}>`
         default:
             return sub
     }
 }
 
-function jsonify(name, data, space) {
+function jsonify({ name, data, space }) {
     const { raw, addition, dts } = data
     const json = j(addition ? { [name]: raw, ...addition } : raw, space)
     return [json, dts]
 }
 
-function yamlify(name, data, indent) {
+function yamlify({ name, data, space }) {
     const { raw, addition, dts } = data
-    const opt = { indent: indent || undefined }
+    const opt = { indent: space || undefined }
     const yaml = dumpYAML(addition ? { [name]: raw, ...addition } : raw, opt)
     return [yaml, dts]
 }
 
-function cjsify(name, data, space, types) {
+function cjsify({ name, data, space, types, toMap }) {
     const { type, pk, dts, addition } = data
-    const converted = map(data.raw, pk, space)
+    const converted = map(data.raw, pk, space, toMap)
     const r = []
     if (types && dts) {
         r.push(`/** @typedef {import('./${name}').${type}} ${type} */`)
@@ -72,9 +72,9 @@ function cjsify(name, data, space, types) {
     return [r.join('\n'), dts]
 }
 
-function esmify(name, data, space, types) {
+function esmify({ name, data, space, types, toMap }) {
     const { type, pk, dts, addition } = data
-    const converted = map(data.raw, pk, space)
+    const converted = map(data.raw, pk, space, toMap)
     const rows = []
     if (types && dts) {
         rows.push(`/** @typedef {import('./${name}').${type}} ${type} */`)
@@ -90,9 +90,9 @@ function esmify(name, data, space, types) {
     return [rows.join('\n'), dts]
 }
 
-function tsify(name, data, space) {
+function tsify({ name, data, space, toMap }) {
     const { pk, addition } = data
-    const converted = map(data.raw, pk, space)
+    const converted = map(data.raw, pk, space, toMap)
     const type = withType(converted.type, data.type, pk)
     const rows = [data.dts]
     rows.push(`export const ${name} = ${converted.data} as unknown as ${type};`)
@@ -122,7 +122,7 @@ async function write(sheet, data) {
     await writeFile(sheet, data)
 }
 
-export async function dump({ sheet, data, type, space, name, ext, types }) {
+export async function dump({ sheet, type, ext, map, types, ...args }) {
     let e, ify
     switch (type) {
         case 'ts':
@@ -151,29 +151,8 @@ export async function dump({ sheet, data, type, space, name, ext, types }) {
             break
     }
 
-    const [main, dts] = ify(name, data, space, types)
+    const [main, dts] = ify({ ...args, types, toMap: map })
     const result = await write(`${sheet}${ext || e}`, main)
     if (types && dts) await write(`${sheet}.d.ts`, dts)
-
-    // if (type !== 'ts' && data?.extra?.types) {
-    //     const { types, typeSign } = data.extra
-    //     const cleanTypes = String(types).trim() + '\n'
-
-    //     const dtsLines = [
-    //         cleanTypes,
-    //         `export declare const ${name}: ${typeSign};`,
-    //         `export default ${name};`,
-    //     ]
-
-    //     if (data.addition) {
-    //         Object.entries(data.addition).forEach(([key, value]) => {
-    //             dtsLines.push(`export declare const ${key}: ${typeof value};`)
-    //         })
-    //     }
-
-    //     const dtsContent = dtsLines.join('\n') + '\n'
-    //     await write(`${sheet}.d.ts`, dtsContent)
-    // }
-
     return result
 }

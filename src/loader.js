@@ -4,14 +4,15 @@ import path from 'node:path'
 import { readFile } from 'node:fs/promises'
 
 export async function load(args) {
-    const { config, list, addition, ext } = args
+    const { config, list, ...a } = args
     const version = new Date().toISOString()
     const type = args.type || 'json'
     const cwd = args.cwd || process.cwd()
     const space = Number(args.space) || 0
     const dest = args.dest || cwd
     const types = !args.notypes
-    const def = { cwd, type, space, dest, addition, ext, types }
+    const map = args.map || false
+    const def = { ...a, cwd, type, space, dest, types, map }
     const m = (...l) => globit(Object.assign({}, ...l))
     const cfgs = []
 
