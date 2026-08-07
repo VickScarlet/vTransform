@@ -1,16 +1,15 @@
-import path from 'node:path'
-import { readFile } from 'node:fs/promises'
 import { read, utils } from 'xlsx'
 
 export async function prepare(xlsxPath) {
-    switch (path.extname(xlsxPath)) {
+    const ext = xlsxPath.substring(xlsxPath.lastIndexOf('.')).toLowerCase()
+    switch (ext) {
         case '.xls':
         case '.xlsx':
             break
         default:
             return []
     }
-    const xlsxFileBuffer = await readFile(xlsxPath)
+    const xlsxFileBuffer = await Bun.file(xlsxPath).arrayBuffer()
     const xlsx = read(xlsxFileBuffer, { type: 'buffer' })
     const datas = []
     for (const name in xlsx.Sheets) {

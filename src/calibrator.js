@@ -1,16 +1,18 @@
-import fs from 'node:fs'
 import { generate } from 'ts-to-zod'
 import { z } from 'zod'
 globalThis.__GLOBAL_ZOD__ = z
 
 export async function calibrateTsData(raw, name, dts) {
-    if (!dts || !fs.existsSync(dts)) {
+    const targetFile = Bun.file(dts)
+    if (!dts || !(await targetFile.exists())) {
         console.warn(`⚠️ [Calibrator] ${name}.types.ts`)
         return { raw, type: 'any', dts: '' }
     }
 
     console.info(`🔍 [Calibrator] ${name}.types.ts`)
-    const sourceText = fs.readFileSync(dts, 'utf-8')
+
+    const sourceText = await targetFile.text()
+
     const options = {
         keepOptionalProperties: true,
         getSchemaName: identifier => `${identifier}Schema`,
@@ -35,6 +37,14 @@ export async function calibrateTsData(raw, name, dts) {
         },
     }
     let zodRawCode = zod.getZodSchemasFile()
+
+    globalThis.__RUNNER_CONFIG_MODULE__ = configModule
+    zodRawCode = zodRawCode.replace(
+        /import\s+\{([^}]+)\}\s+from\s+['"]undefined['"];?/g,
+        (match, enumNamesStr) =>
+            `const {${enumNamesStr}} = globalThis.__RUNNER_CONFIG_MODULE__;`,
+    )
+
     zodRawCode = zodRawCode.replace(
         /import\s+\{\s*z\s*\}\s+from\s+['"]zod['"];?/g,
         'const z = globalThis.__GLOBAL_ZOD__;',
@@ -62,6 +72,7 @@ export async function calibrateTsData(raw, name, dts) {
     const RowZodValidator = zodModule[targetSchemaName]
     if (!RowZodValidator) {
         delete globalThis.__MERGED_TRANSFORMERS__
+        delete globalThis.__RUNNER_CONFIG_MODULE__
         throw new Error(`❌ [Calibrator] ${targetSchemaName} Missmatch`)
     }
     const typeName = targetSchemaName.replace(/Schema$/, '')
@@ -85,6 +96,7 @@ export async function calibrateTsData(raw, name, dts) {
             const parseResult = RowZodValidator.safeParse(raw[i])
             if (!parseResult.success) {
                 delete globalThis.__MERGED_TRANSFORMERS__
+                delete globalThis.__RUNNER_CONFIG_MODULE__
                 printZodError(name, i, parseResult.error.issues, raw[i])
             }
             raw[i] = parseResult.data
@@ -95,6 +107,7 @@ export async function calibrateTsData(raw, name, dts) {
             const parseResult = RowZodValidator.safeParse(raw[key])
             if (!parseResult.success) {
                 delete globalThis.__MERGED_TRANSFORMERS__
+                delete globalThis.__RUNNER_CONFIG_MODULE__
                 printZodError(name, key, parseResult.error.issues, raw[key])
             }
             raw[key] = parseResult.data
@@ -103,6 +116,7 @@ export async function calibrateTsData(raw, name, dts) {
     }
 
     delete globalThis.__MERGED_TRANSFORMERS__
+    delete globalThis.__RUNNER_CONFIG_MODULE__
     return data
 }
 

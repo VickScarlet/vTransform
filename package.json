@@ -4,7 +4,7 @@
     "vt": "bin/index.js"
   },
   "type": "module",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "main": "src/index.js",
   "scripts": {
     "clean": "npx rimraf test",
@@ -20,12 +20,14 @@
   "license": "MIT",
   "devDependencies": {
     "commander": "^15.0.0",
-    "glob": "^13.0.6",
     "js-yaml": "^5.2.3",
     "ts-to-zod": "^5.1.0",
     "tsup": "^8.5.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
   },
-  "files": ["bin", "src"]
+  "files": [
+    "bin",
+    "src"
+  ]
 }

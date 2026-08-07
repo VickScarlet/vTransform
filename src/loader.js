@@ -1,13 +1,10 @@
-import { glob } from 'glob'
 import { load as loadYAML } from 'js-yaml'
-import path from 'node:path'
-import { readFile } from 'node:fs/promises'
 
 export async function load(args) {
     const { config, list, ...a } = args
     const version = new Date().toISOString()
     const type = args.type || 'json'
-    const cwd = args.cwd || process.cwd()
+    const cwd = args.cwd || Bun.cwd
     const space = Number(args.space) || 0
     const dest = args.dest || cwd
     const types = !args.notypes
@@ -32,17 +29,18 @@ export async function load(args) {
 
 async function loadConfigData(config, def, m) {
     const c = await loadConfig(config)
-    const dir = path.dirname(config)
+    const dir = config.substring(0, config.lastIndexOf('/')) || '.'
     const cdef = {}
-    if (c.cwd) cdef.cwd = path.resolve(dir, c.cwd)
+
+    if (c.cwd) cdef.cwd = `${dir}/${c.cwd}`
     if (c.type) cdef.type = c.type
     if (typeof c.space == 'number') cdef.space = c.space
-    if (c.dest) cdef.dest = path.resolve(dir, c.dest)
+    if (c.dest) cdef.dest = `${dir}/${c.dest}`
     const cfgs = []
 
     for (const cfg of c.configurations) {
-        if (cfg.cwd) cfg.cwd = path.resolve(dir, cfg.cwd)
-        if (cfg.dest) cfg.dest = path.resolve(dir, cfg.dest)
+        if (cfg.cwd) cfg.cwd = `${dir}/${cfg.cwd}`
+        if (cfg.dest) cfg.dest = `${dir}/${cfg.dest}`
         cfgs.push(await m(def, cdef, cfg))
     }
 
@@ -50,13 +48,15 @@ async function loadConfigData(config, def, m) {
 }
 
 async function loadConfig(config) {
-    switch (path.extname(config)) {
+    const ext = config.substring(config.lastIndexOf('.'))
+    switch (ext) {
         case '.json':
         case '.yaml':
         case '.yml':
-            return loadYAML(await readFile(config))
+            return loadYAML(await Bun.file(config).text())
         case '.js':
         case '.mjs':
+        case '.ts':
             return (await import(config)).default
         default:
             throw new Error(`Unknown config file type: ${config}`)
@@ -66,10 +66,23 @@ async function loadConfig(config) {
 async function globit(options) {
     const { glob: gs, cwd } = options
     const files = []
-    const g = p => glob(p, { cwd })
-    if (Array.isArray(gs)) for (const p of gs) files.push(...(await g(p)))
-    else if (typeof gs == 'string') files.push(...(await g(gs)))
-    else throw new Error(`Unknown glob type: ${gs}`)
+
+    const scanGlob = async pattern => {
+        const globInstance = new Bun.Glob(pattern)
+        const matched = []
+        for await (const file of globInstance.scan({ cwd })) {
+            matched.push(file)
+        }
+        return matched
+    }
+
+    if (Array.isArray(gs)) {
+        for (const p of gs) files.push(...(await scanGlob(p)))
+    } else if (typeof gs == 'string') {
+        files.push(...(await scanGlob(gs)))
+    } else {
+        throw new Error(`Unknown glob type: ${gs}`)
+    }
 
     return { ...options, files }
 }

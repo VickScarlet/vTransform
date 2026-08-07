@@ -1,6 +1,4 @@
 import { dump as dumpYAML } from 'js-yaml'
-import path from 'node:path'
-import { writeFile, stat, mkdir } from 'node:fs/promises'
 
 function j(data, space) {
     return JSON.stringify(data, null, space)
@@ -104,22 +102,9 @@ function tsify({ name, data, space, toMap }) {
     return [rows.join('\n')]
 }
 
-async function mkdirs(dir) {
-    try {
-        await stat(dir)
-    } catch (e) {
-        if (e.code !== 'ENOENT') {
-            throw e
-        }
-        await mkdirs(path.dirname(dir))
-        await mkdir(dir)
-    }
-}
-
 async function write(sheet, data) {
     console.info(`📦 -> ${sheet}`)
-    await mkdirs(path.dirname(sheet))
-    await writeFile(sheet, data)
+    return await Bun.write(sheet, data)
 }
 
 export async function dump({ sheet, type, ext, map, types, ...args }) {

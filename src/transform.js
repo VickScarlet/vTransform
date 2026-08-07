@@ -1,4 +1,3 @@
-import path from 'node:path'
 import { load } from './loader.js'
 import { prepare } from './prepare.js'
 import { parser } from './parser.js'
@@ -17,8 +16,8 @@ async function task(options) {
     const { files, dest, cwd, addition, ...opts } = options
     const m = new Map()
     for (const file of files) {
-        const dir = path.resolve(dest, path.dirname(file))
-        await processPrepared(path.resolve(cwd, file), dir, m)
+        const dir = `${dest}/${file.substring(0, file.lastIndexOf('/')) || '.'}`
+        await processPrepared(`${cwd}/${file}`, dir, m)
     }
     for (const [sheet, job] of m) {
         const data = await job.result(addition)
@@ -28,7 +27,7 @@ async function task(options) {
 
 async function processPrepared(src, dir, m) {
     const prepared = await prepare(src)
-    const xlsxDir = path.dirname(src)
+    const xlsxDir = src.substring(0, src.lastIndexOf('/')) || '.'
     for (const { name, data } of prepared) {
         if (name.startsWith('#')) continue
         const { sheet, keys, name: parsedName } = parseSheetAndKeys(name, dir)
@@ -43,7 +42,7 @@ function parseSheetAndKeys(name, dir) {
     if (sheet.startsWith('>')) sheet = sheet.substring(1)
     const keys = sheet.split('.')
     let key = keys.shift()
-    sheet = path.resolve(dir, key)
+    sheet = `${dir}/${key}`
     return { sheet, keys, name: key }
 }
 
@@ -80,7 +79,7 @@ class JobData {
             }
             r[last] = this.#combine(r[last], data)
         }
-        const dts = path.join(this.#xlsxDir, `${this.#name}.types.ts`)
+        const dts = `${this.#xlsxDir}/${this.#name}.types.ts`
         const data = await calibrateTsData(result, this.#name, dts)
         return { ...data, pk: this.#pk, addition }
     }
@@ -89,9 +88,7 @@ class JobData {
         if (a == null) return b
         if (b == null) return a
         if (Array.isArray(a) && Array.isArray(b)) {
-            if (Array.isArray(b)) return a.concat(b)
-            a.push(b)
-            return a
+            return a.concat(b)
         }
         if (Array.isArray(a)) return this.#combine(a, Object.values(b))
         if (Array.isArray(b)) return this.#combine(Object.values(a), b)
