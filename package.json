@@ -4,13 +4,13 @@
     "vt": "bin/index.js"
   },
   "type": "module",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "main": "src/index.js",
   "scripts": {
     "clean": "npx rimraf test",
     "vt": "vt",
     "transform": "vt transform",
-    "build": "tsup src/index.js -d bin --format esm --minify"
+    "build": "bun build src/index.js --target=bun --format=esm --minify --outfile=bin/index.js"
   },
   "repository": {
     "type": "git",
@@ -22,9 +22,11 @@
     "commander": "^15.0.0",
     "js-yaml": "^5.2.3",
     "ts-to-zod": "^5.1.0",
-    "tsup": "^8.5.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
+  },
+  "overrides": {
+    "@oclif/core": "^4"
   },
   "files": [
     "bin",

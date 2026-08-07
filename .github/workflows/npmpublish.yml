@@ -13,23 +13,19 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: 🛠️ Install Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-          package-manager-cache: false  # never use caching in release builds
+          bun-version: latest
       
-      - name: 🛠️ Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: latest
-      
-      - name: Install Dependencies
-        run: pnpm install
+      - name: 📦 Install Dependencies
+        run: bun install
 
-      - name: Build Package
-        run: pnpm build
+      - name: 🏗️ Build
+        run: bun build src/index.js --target=bun --format=esm --minify --outfile=bin/index.js
       
-      - run: npm publish  # Or: npm stage publish
+      - name: 🚀 Publish
+        run: bun publish
