@@ -1,6 +1,6 @@
-# vTransform
+# v-transform
 
-## useage
+## Usage
 
 ```bash
 $ bunx --bun v-transform help
