@@ -1,15 +1,16 @@
 {
   "name": "v-transform",
   "bin": {
-    "vt": "src/index.js"
+    "vt": "bin/index.js"
   },
   "type": "module",
-  "version": "3.1.0",
-  "main": "index.js",
+  "version": "3.1.1",
+  "main": "src/index.js",
   "scripts": {
     "clean": "npx rimraf test",
     "vt": "vt",
-    "transform": "vt transform"
+    "transform": "vt transform",
+    "build": "tsup src/index.js -d bin --format esm --minify"
   },
   "repository": {
     "type": "git",
@@ -17,12 +18,14 @@
   },
   "author": "Vick Scarlet <scarlet_vick@outlook.com>",
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
     "commander": "^15.0.0",
     "glob": "^13.0.6",
-    "js-yaml": "^5.2.2",
+    "js-yaml": "^5.2.3",
     "ts-to-zod": "^5.1.0",
+    "tsup": "^8.5.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
-  }
+  },
+  "files": ["bin", "src"]
 }

@@ -106,3 +106,4 @@ dist
 jobs/
 data/
 test/
+bin/
