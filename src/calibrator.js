@@ -1,7 +1,7 @@
 import fs from 'node:fs'
-import path from 'node:path'
 import { generate } from 'ts-to-zod'
 import { z } from 'zod'
+globalThis.__GLOBAL_ZOD__ = z
 
 export async function calibrateTsData(raw, name, dts) {
     if (!dts || !fs.existsSync(dts)) {
@@ -34,11 +34,10 @@ export async function calibrateTsData(raw, name, dts) {
             return Boolean(val)
         },
     }
-    const localZodPath = require.resolve('zod').replace(/\\/g, '/')
     let zodRawCode = zod.getZodSchemasFile()
     zodRawCode = zodRawCode.replace(
-        /from\s+['"]zod['"]/g,
-        `from "${localZodPath}"`,
+        /import\s+\{\s*z\s*\}\s+from\s+['"]zod['"];?/g,
+        'const z = globalThis.__GLOBAL_ZOD__;',
     )
     zodRawCode = zodRawCode.replace(
         /z\.string\(\)/g,
